@@ -1,0 +1,14 @@
+name: Image-Noise-Reduction
+channels:
+    - defaults
+    - conda-forge
+dependecies:
+    - python=3.8
+    - anaconda
+    - numpy
+    - matplotlib
+    - seaborn
+    - jupyter
+    - pillow
+    - pytorch
+    - torchvision
