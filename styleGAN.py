@@ -1,53 +1,193 @@
 from torch import nn
+import torch
+import numpy as np
 from torch.nn import functional as func
 
-class StyleGAN(nn.Module):
+"""
+Style Based generator, heavily based on:
+https://github.com/SiskonEmilia/StyleGAN-PyTorch/blob/c11e94e51478d5134729936066f1242488e9e6ee/model.py
+"""
 
-    def __init__(self, out_channels):
-        # 10 blocks
-        pass
+class Scaler:
+    """
+         Scales the input modules weights for upscaling
+    """
+    def scale(self, module):
+        weight = getattr(module, self.name + '_base')
+        fan_in = weight.data.size(1) + weight.data[0][0].numel()
+
+        return weight * np.sqrt(2 / fan_in)
+
+    def __call__(self, module):
+        weight = self.scale(module)
+        setattr(module, self.name, weight) # Sets module.weight to the new scaled weight
+
+    @staticmethod
+    def apply_scale(module: nn.Module, name="weight"):
+        hook = Scaler(name)
+        weight = getattr(module, name)
+        module.register_parameter(name + '_base', nn.Parameter(weight.data))
+        del module._parameters[name] # Lets save up some space, its important later
+        module.register_foward_pre_hook(hook) # makes the Scaler be called every time forward() is called 
+
+def quick_scale(module, name="weight"):
+    Scaler.apply_scale(module, name)
+    return module
+
+class StyleBasedGenerator(nn.Module):
+
+    def __init__(self, out_channels, *, num_fc, dim_latent, dim_input):
+        self.fcs = LatentMapper(dim_latent, num_layers=num_fc)
+        self.convs = nn.ModuleList([
+            # Early_StyleConv_Block(512, dim_latent, dim_input),
+            Block(512, 512, dim_latent=dim_latent),
+            Block(512, 512, dim_latent=dim_latent),
+            Block(512, 512, dim_latent=dim_latent),
+            Block(512, 256, dim_latent=dim_latent),
+            Block(256, 128, dim_latent=dim_latent),
+            Block(128, 64,  dim_latent=dim_latent),
+            Block(64, 32,   dim_latent=dim_latent),
+            Block(32, 16,   dim_latent=dim_latent)
+        ])
+
+        self.to_rgbs = nn.ModuleList([
+            quick_scale(nn.Conv2d(512, 3, 1)),
+            quick_scale(nn.Conv2d(512, 3, 1)),
+            quick_scale(nn.Conv2d(512, 3, 1)),
+            quick_scale(nn.Conv2d(512, 3, 1)),
+            quick_scale(nn.Conv2d(256, 3, 1)),
+            quick_scale(nn.Conv2d(128, 3, 1)),
+            quick_scale(nn.Conv2d(64 , 3, 1)),
+            quick_scale(nn.Conv2d(32 , 3, 1)),
+            quick_scale(nn.Conv2d(16 , 3, 1))
+        ])
+
+        def forward(self, latent_z,
+                step = 0,
+                alpha = -1,
+                noise = None,
+                mix_steps = [],
+                latent_w_center = None,
+                psi = 0):
+            
+            if type(latent_z) != type([]):
+                print("Please use a list to package latent_z")
+                latent_z = [latent_z]
+            if (len(latent_z) != 2 and len(mix_steps) > 0) or type(mix_steps) != type([]):
+                print('Warning: Style mixing disabled, possible reasons:')
+                print('- Invalid number of latent vectors')
+                print('- Invalid parameter type: mix_steps')
+                mix_steps = []
+
+            latent_w = [self.fcs(latent) for latent in latent_z]
+            batch_size = latent_w[0].size(0)
+
+            # Truncation trick in W
+            if latent_w_center is not None:
+                latent_w = [latent_w_center + psi * (unscaled_latenet_w - latent_w_center)
+                        for unscaled_latenet_w in latent_w]
+
+            result = 0
+            current_latent = 0
+            for i, conv in enumerate(self.convs):
+                if i in mix_steps:
+                    current_latent = latent_w[1]
+                else:
+                    current_latent = latent_w[0]
+
+                if i > 0 and step > 0:
+                    result_upsample = nn.functional.interpolate(result, scale_factor=2, mode='bilinear',
+                                                      align_corners=False)
+                    result = conv(result_upsample, current_latent, noise[i])
+                else:
+                    result = conv(current_latent, noise[i])
+
+                # Final layer
+                if i == step:
+                    result = self.to_rgbs[i](result)
+                    if i > 0 and 0 <= alpha < 1:
+                        result_prev = self.to_rgbs[i - 1](result_upsample)
+                        result = alpha * result + ( 1 - alpha) * result_prev
+                    break
+
+            return result
+
 
 class Block(nn.Module):
 
-    def __init__(self, in_size, upsample=False): # Assume square
+    def __init__(self, in_size, out_size, *, dim_latent): # Assume square
         super().__init__()
+
+        self.conv1 = quick_scale(nn.Conv2d(in_size, in_size, padding=1, kernel_size=3)),
+        self.conv2 = quick_scale(nn.Conv2d(in_size, in_size, padding=1, kernel_size=3)),
+        # Noise Mappers
+        self.noise_layer1 = quick_scale(NoiseLayer(out_size))
+        self.noise_layer2 = quick_scale(NoiseLayer(out_size))
+        # Style Mappers
+        self.style1 = StyleLayer(dim_latent, out_size)
+        self.style2 = StyleLayer(dim_latent, out_size)
+        # Normalization
         self.adain = AdaIn()
+        # Activation
+        self.act = nn.LeakyReLU(0.2)
 
-        self.conv1 = nn.Linear(
-                nn.Conv2d(in_size, in_size, padding=1, kernel_size=3, bias=False)
-                nn.LeakyReLU(0.2)
-                )
-        self.conv2 = nn.Linear(
-                nn.Conv2d(in_size, in_size, padding=1, kernel_size=3, bias=False)
-                nn.LeakyReLU(0.2)
-                )
-
-        self.upsample = upsample
-
-    def forward(self, x, style, noise):
-        if self.upsample:
-            x = func.upsample(x, scale_factor=2)
-        # x = inject_noise(noise_b)
+    def forward(self, x, latent_w, noise):
         x = self.conv1(x)
-        x = x + self.noise # TODO: Add weight to this noise
+        x = x + self.noise_layer1(noise) # Adding bias (noise)
+        x = self.adain(x, self.style1(latent_w))
+        x = self.act(x)
         x = self.conv2(x)
-        x = self.adain(x, style_noise)
+        x = x + self.noise_layer2(noise) # Adding bias (noise)
+        x = self.adain(x, self.style2(latent_w))
+        x = self.act(x)
         return x
 
+class PixelNorm(nn.Module):
+    def forward(self, x):
+        return x / torch.sqrt(torch.mean(x ** 2, dim=1, keepdim=1) + 1e-8)
 
 class LatentMapper(nn.Module):
 
-    def __init__(self, z_dim_size):
+    def __init__(self, z_dim_size, num_layers=8):
+        """
+        Maps the Z vector space to the W vector space
+        """
         super().__init__()
         # 512 x 1
-        layers = []
+        layers = [PixelNorm()]
         for i in range(num_layers):
-            layers.append(nn.Linear(z_dim_size, z_dim_size))
+            layers.append(quick_scale(nn.Linear(z_dim_size, z_dim_size)))
+            layers.append(nn.LeakyReLU(0.2))
 
         self.mapping = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.mapping(x)
+
+class NoiseLayer(nn.Module):
+    """
+    Simply scales the noise weight
+    """
+    def __init__(self, n_channels):
+        super().__init__()
+        self.weight = nn.Parameter(torch.zeros(1, n_channels, 1, 1)) # initialize weights to 0 initially
+
+    def forward(self, noise):
+        result = noise * self.weight
+        return result
+
+class StyleLayer(nn.Module):
+
+    def __init__(self, z_dim, n_channels):
+        linear = nn.Linear(z_dim, n_channels * 2)
+
+        linear.transform.linear.bias.data[:n_channels] = 1
+        linear.transform.linear.bias.data[n_channels:] = 0
+
+        self.transform = quick_scale(linear)
+
+    def forward(self, latent):
+        return self.transform(latent).unsqueeze(2).unsqueeze(3)
 
 
 # AdaIn taken from this github 
@@ -76,5 +216,6 @@ class AdaIn(nn.Module):
         content_mean, content_std = self.calc_mean_std(content_features)
         style_mean, style_std = self.calc_mean_std(style_features)
         normalized_features = style_std * (content_features - content_mean) / content_std + style_mean
+
         return normalized_features
 #
