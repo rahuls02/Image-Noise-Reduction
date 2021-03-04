@@ -2,52 +2,27 @@ from torch import nn
 import torch
 import numpy as np
 from torch.nn import functional as func
+from .shared import quick_scale
 
 """
-Style Based generator, heavily based on:
+Style Based generator, design is heavily based on:
 https://github.com/SiskonEmilia/StyleGAN-PyTorch/blob/c11e94e51478d5134729936066f1242488e9e6ee/model.py
 """
-
-class Scaler:
-    """
-         Scales the input modules weights for upscaling
-    """
-    def scale(self, module):
-        weight = getattr(module, self.name + '_base')
-        fan_in = weight.data.size(1) + weight.data[0][0].numel()
-
-        return weight * np.sqrt(2 / fan_in)
-
-    def __call__(self, module):
-        weight = self.scale(module)
-        setattr(module, self.name, weight) # Sets module.weight to the new scaled weight
-
-    @staticmethod
-    def apply_scale(module: nn.Module, name="weight"):
-        hook = Scaler(name)
-        weight = getattr(module, name)
-        module.register_parameter(name + '_base', nn.Parameter(weight.data))
-        del module._parameters[name] # Lets save up some space, its important later
-        module.register_foward_pre_hook(hook) # makes the Scaler be called every time forward() is called 
-
-def quick_scale(module, name="weight"):
-    Scaler.apply_scale(module, name)
-    return module
 
 class StyleBasedGenerator(nn.Module):
 
     def __init__(self, out_channels, *, num_fc, dim_latent, dim_input):
         self.fcs = LatentMapper(dim_latent, num_layers=num_fc)
         self.convs = nn.ModuleList([
-            # Early_StyleConv_Block(512, dim_latent, dim_input),
-            Block(512, 512, dim_latent=dim_latent),
-            Block(512, 512, dim_latent=dim_latent),
-            Block(512, 512, dim_latent=dim_latent),
-            Block(512, 256, dim_latent=dim_latent),
-            Block(256, 128, dim_latent=dim_latent),
-            Block(128, 64,  dim_latent=dim_latent),
-            Block(64, 32,   dim_latent=dim_latent),
-            Block(32, 16,   dim_latent=dim_latent)
+            FirstBlock(512, dim_latent, dim_input),
+            GeneratorBlock(512, 512, dim_latent=dim_latent),
+            GeneratorBlock(512, 512, dim_latent=dim_latent),
+            GeneratorBlock(512, 512, dim_latent=dim_latent),
+            GeneratorBlock(512, 256, dim_latent=dim_latent),
+            GeneratorBlock(256, 128, dim_latent=dim_latent),
+            GeneratorBlock(128, 64,  dim_latent=dim_latent),
+            GeneratorBlock(64, 32,   dim_latent=dim_latent),
+            GeneratorBlock(32, 16,   dim_latent=dim_latent)
         ])
 
         self.to_rgbs = nn.ModuleList([
@@ -63,8 +38,8 @@ class StyleBasedGenerator(nn.Module):
         ])
 
         def forward(self, latent_z,
-                step = 0,
-                alpha = -1,
+                step = 0, # The current is how many layers away from 4 x 4
+                alpha = -1, # Smooth conversion (upscaling / downscaling)
                 noise = None,
                 mix_steps = [],
                 latent_w_center = None,
@@ -95,7 +70,7 @@ class StyleBasedGenerator(nn.Module):
                 else:
                     current_latent = latent_w[0]
 
-                if i > 0 and step > 0:
+                if i > 0 and step > 0:# Should we be upsampling in this layer
                     result_upsample = nn.functional.interpolate(result, scale_factor=2, mode='bilinear',
                                                       align_corners=False)
                     result = conv(result_upsample, current_latent, noise[i])
@@ -104,6 +79,7 @@ class StyleBasedGenerator(nn.Module):
 
                 # Final layer
                 if i == step:
+                    # Could stop early
                     result = self.to_rgbs[i](result)
                     if i > 0 and 0 <= alpha < 1:
                         result_prev = self.to_rgbs[i - 1](result_upsample)
@@ -112,8 +88,41 @@ class StyleBasedGenerator(nn.Module):
 
             return result
 
+class FirstBlock(nn.Module):
 
-class Block(nn.Module):
+    def __init__(self, in_size, dim_latent, dim_input):
+        super().__init__()
+
+        self.constant = nn.Parameter(torch.randn(1, in_size, dim_input, dim_input))
+
+        self.conv = quick_scale(nn.Conv2d(in_size, in_size, padding=1, kernel_size=3)),
+        # Noise Mappers
+        self.noise_layer1 = quick_scale(NoiseLayer(in_size))
+        self.noise_layer2 = quick_scale(NoiseLayer(in_size))
+        # Style Mappers
+        self.style1 = StyleLayer(dim_latent, in_size)
+        self.style2 = StyleLayer(dim_latent, in_size)
+        # Normalization
+        self.adain = AdaIn()
+        # Activation
+        self.act = nn.LeakyReLU(0.2)
+
+    def forward(self, style, noise):
+
+        x = self.constant.repeat(noise.shape[0], 1, 1, 1)
+        x = x + self.noise_layer1(noise)
+        x = self.adain(x, self.style1(style))
+        x = self.act(x)
+        x = self.conv(x)
+        x = x + self.noise_layer2(x)
+        x = self.adain(x, self.style2(style))
+        x = self.act(x)
+
+        return x
+
+
+
+class GeneratorBlock(nn.Module):
 
     def __init__(self, in_size, out_size, *, dim_latent): # Assume square
         super().__init__()
@@ -131,14 +140,14 @@ class Block(nn.Module):
         # Activation
         self.act = nn.LeakyReLU(0.2)
 
-    def forward(self, x, latent_w, noise):
+    def forward(self, x, style, noise):
         x = self.conv1(x)
         x = x + self.noise_layer1(noise) # Adding bias (noise)
-        x = self.adain(x, self.style1(latent_w))
+        x = self.adain(x, self.style1(style))
         x = self.act(x)
         x = self.conv2(x)
         x = x + self.noise_layer2(noise) # Adding bias (noise)
-        x = self.adain(x, self.style2(latent_w))
+        x = self.adain(x, self.style2(style))
         x = self.act(x)
         return x
 
