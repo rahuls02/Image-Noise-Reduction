@@ -7,6 +7,7 @@ class Discriminator(nn.Module):
     def __init__(self):
         super().__init__()
         # Convert image from rgb image to "latent_space" image
+        # start with a resolution of 16 x 16 and scale upwards
         self.from_rgbs = nn.ModuleList([
             quick_scale(nn.Conv2d(3, 16,  1)),
             quick_scale(nn.Conv2d(3, 32,  1)),
@@ -28,7 +29,7 @@ class Discriminator(nn.Module):
             UpscaleBlock(512, 512, kernel1=3, padding1=1),
             UpscaleBlock(512, 512, kernel1=3, padding1=1),
             UpscaleBlock(512, 512, kernel1=3, padding1=1),
-            UpscaleBlock(513, 512, kernel1=3, padding1=1, kernel2=4, padding2=0)
+            UpscaleBlock(512, 512, kernel1=3, padding1=1, kernel2=4, padding2=0)
         ])
         self.layer_count = len(self.convs)
 
