@@ -1,4 +1,4 @@
-from torch.nn import nn
+from torch import nn
 import torch
 from .shared import quick_scale
 
@@ -29,25 +29,26 @@ class Discriminator(nn.Module):
             UpscaleBlock(512, 512, kernel1=3, padding1=1),
             UpscaleBlock(512, 512, kernel1=3, padding1=1),
             UpscaleBlock(512, 512, kernel1=3, padding1=1),
-            UpscaleBlock(512, 512, kernel1=3, padding1=1, kernel2=4, padding2=0)
+            UpscaleBlock(513, 512, kernel1=3, padding1=1, kernel2=4, padding2=0)
         ])
         self.layer_count = len(self.convs)
+        self.fc = quick_scale(nn.Linear(512, 1))
 
     def forward(self, image,
             step = 0,
             alpha = -1):
 
         for i in range(step, -1, -1):
-            layer_index = self.n_layer - i - 1
+            layer_index = self.layer_count - i - 1
 
             # First layer, convert from rgb to n_channel data
             if i == step:
-                result = self.from_rgbs(image)
+                result = self.from_rgbs[layer_index](image)
 
             # Last layer, minibatch std
             if i == 0:
                 # In dim: [batch, channel(512), 4, 4]
-                res_var = result.var(0, unbaise=False) + 1e-8 # avoid 0
+                res_var = result.var(0, unbiased=False) + 1e-8  # avoid 0
                 # Out dim: [channel(512), 4, 4]
                 res_std = torch.sqrt(res_var)
                 # Out dim: [channel(512), 4, 4]
@@ -55,7 +56,7 @@ class Discriminator(nn.Module):
                 # Outdim: [1] -> [batch, 1, 4, 4]
                 result = torch.cat([result, mean_std], 1) # Add mean std
                 # out dim: [batch, 512 +1, 4, 4]
-
+            print(layer_index)
             result = self.convs[layer_index](result)
 
             if i > 0:
@@ -74,7 +75,7 @@ class Discriminator(nn.Module):
 class UpscaleBlock(nn.Module):
 
     def __init__(self, in_channel, out_channel, *, kernel1, padding1, kernel2=None, padding2=None):
-
+        super().__init__()
         if kernel2 == None:
             kernel2 = kernel1
         if padding2 == None:
@@ -83,7 +84,7 @@ class UpscaleBlock(nn.Module):
         self.conv = nn.Sequential(
             quick_scale(nn.Conv2d(in_channel, out_channel, kernel1, padding=padding1)),
             nn.LeakyReLU(0.2),
-            quick_scale(nn.Conv2d(in_channel, out_channel, kernel2, padding=padding2)),
+            quick_scale(nn.Conv2d(out_channel, out_channel, kernel2, padding=padding2)),
             nn.LeakyReLU(0.2),
         )
     
