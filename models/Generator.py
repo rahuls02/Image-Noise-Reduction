@@ -45,6 +45,7 @@ class StyleBasedGenerator(nn.Module):
                 mix_steps=[],
                 latent_w_center=None,
                 psi=0):
+        print("Called")
         if not isinstance(latent_z, list):
             print("Please use a list to package latent_z")
             latent_z = [latent_z]

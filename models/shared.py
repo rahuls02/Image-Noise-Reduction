@@ -1,6 +1,14 @@
 from torch import nn
 import numpy as np
 
+
+def initialize_weights(model: nn.Module):
+    for module in model.modules():
+        if isinstance(model, (nn.Conv2d, nn.Linear)):
+            module.weight.data.normal_()
+            module.weight.bias.zero_()
+
+
 class Scaler:
     """
          Scales the input modules weights for upscaling
@@ -25,6 +33,7 @@ class Scaler:
         module.register_parameter(name + '_base', nn.Parameter(weight.data))
         del module._parameters[name]  # Lets save up some space
         module.register_forward_pre_hook(hook)  # makes the Scaler be called every time forward() is called
+
 
 def quick_scale(module, name="weight"):
     """

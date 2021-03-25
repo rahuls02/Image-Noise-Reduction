@@ -56,12 +56,15 @@ class Discriminator(nn.Module):
                 # Outdim: [1] -> [batch, 1, 4, 4]
                 result = torch.cat([result, mean_std], 1) # Add mean std
                 # out dim: [batch, 512 +1, 4, 4]
-            print(layer_index)
             result = self.convs[layer_index](result)
 
             if i > 0:
                 # Downsample
-                result = nn.functional.interpolate(result, scale_factor=0.5, mode='bilinear', align_corners=False)
+                result = nn.functional.interpolate(result,
+                                                   scale_factor=0.5,
+                                                   mode='bilinear',
+                                                   recompute_scale_factor=True,
+                                                   align_corners=False)
 
                 if i == step and 0 <= alpha <1:
                     result_next = self.from_rgbs[layer_index + 1](image)
@@ -87,6 +90,6 @@ class UpscaleBlock(nn.Module):
             quick_scale(nn.Conv2d(out_channel, out_channel, kernel2, padding=padding2)),
             nn.LeakyReLU(0.2),
         )
-    
+
     def forward(self, x):
         return self.conv(x)
