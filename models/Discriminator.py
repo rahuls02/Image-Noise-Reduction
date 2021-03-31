@@ -2,6 +2,7 @@ from torch import nn
 import torch
 from .shared import quick_scale
 
+
 class Discriminator(nn.Module):
 
     def __init__(self):
@@ -68,7 +69,7 @@ class Discriminator(nn.Module):
 
                 if i == step and 0 <= alpha <1:
                     result_next = self.from_rgbs[layer_index + 1](image)
-                    result_next = nn.functional.interpolate(result_next, scale_factor=0.5, mode='bilinear', align_corners=False)
+                    result_next = nn.functional.interpolate(result_next, scale_factor=0.5, mode='bilinear', align_corners=False, recompute_scale_factor=True)
                     result = alpha * result + (1 - alpha) * result_next
 
         # Convert from [batch, channel(512), 1, 1] -> [batch, channel(512)]

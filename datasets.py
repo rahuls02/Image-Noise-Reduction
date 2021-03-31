@@ -9,7 +9,7 @@ import os
 # credit to https://gist.github.com/glenrobertson/2288152#gistcomment-3461365
 def get_white_noise_image(w,h):
     pil_map = Image.fromarray(np.random.randint(0,255,(w,h,3),dtype=np.dtype('uint8')))
-    return pil_map
+    return pil_map.convert('RGB')
 
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
@@ -42,11 +42,12 @@ class NoiseImageDataset(Dataset):
     def __getitem__(self, index):
         path = self.paths[index]
         clean_im = Image.open(path)
-        clean_im = clean_im.convert('RGB')
-
+        # Noise it up
+        noised_im = Image.blend(clean_im,
+                                get_white_noise_image(clean_im.size[1], clean_im.size[0]),
+                                self.noise_strength)
         if self.transform:
             clean_im = self.transform(clean_im)
+            noised_im = self.transform(noised_im)
         
-        # Noise it up
-        noised_im = Image.blend(clean_im, get_white_noise_image(clean_im.size()[0], clean_im.size()[1]), self.noise_strength)
         return clean_im, noised_im

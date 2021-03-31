@@ -8,8 +8,9 @@ import os
 import torch
 from torch import nn, optim
 from tqdm import tqdm
+from datasets import NoiseImageDataset
 from torch.utils.data import DataLoader
-from torchvision import transforms, datasets
+from torchvision import transforms
 from models.models_v2 import *
 from PIL import Image
 from matplotlib.pyplot import imshow
@@ -136,7 +137,7 @@ def train(generator, discriminator, g_optim, d_optim, dataset, step, iteration=0
             reset_LR(d_optim, learning_rate.get(resolution, 0.001))
         try:
             # Try to read next image
-            real_image, _ = next(data_loader)
+            real_image, noised_im = next(data_loader)
 
         except (OSError, StopIteration):
             # Dataset exhausted, train from the first image
@@ -275,7 +276,7 @@ g_optim.add_param_group({
     'mul'   : 0.01
 })
 d_optim        = optim.Adam(discriminator.parameters(), lr=0.001, betas=(0.0, 0.99))
-dataset        = datasets.ImageFolder(image_folder_path)
+dataset        = NoiseImageDataset(image_folder_path, noise_strength=0.2)
 
 if is_continue:
     if os.path.exists('checkpoint/trained.pth'):

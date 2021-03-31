@@ -163,11 +163,15 @@ class GeneratorBlock(nn.Module):
 
     def forward(self, x, style, noise):
         x = self.conv1(x)
-        x = x + self.noise_layer1(noise)  # Adding bias (noise)
+        n1 = self.noise_layer1(noise)
+        print(f"x {x.size()}; n1 {n1.size()}")
+        x = x + n1  # Adding bias (noise)
         x = self.adain(x, self.style1(style))
         x = self.act(x)
         x = self.conv2(x)
-        x = x + self.noise_layer2(noise)  # Adding bias (noise)
+        n2 = self.noise_layer2(noise)
+        print(f"x {x.size()}; n2 {n2.size()}")
+        x = x + n2  # Adding bias (noise)
         x = self.adain(x, self.style2(style))
         x = self.act(x)
         return x
@@ -208,6 +212,7 @@ class NoiseLayer(nn.Module):
         self.weight = nn.Parameter(torch.zeros(1, n_channels, 1, 1))
 
     def forward(self, noise):
+        print(f"Nosie weight: {self.weight.size()}")
         result = noise * self.weight
         return result
 

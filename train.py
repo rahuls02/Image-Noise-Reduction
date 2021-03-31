@@ -23,10 +23,12 @@ save_folder_path    = "saves/"
 # Scaled learning rates
 learning_rate       = {128: 0.0015, 256: 0.002, 512: 0.003, 1024: 0.003}
 
-batch_size          = {4: 1, 8: 1, 16: 1, 32: 1, 64: 1, 128: 1}
-mini_batch_size     = 8
+# batch_size          = {4: 128, 8: 128, 16: 64, 32: 32, 64: 16, 128: 16}
+batch_size          = {4: 10, 8: 10, 16: 10, 32: 20, 64: 16, 128: 16}
+# batch_size          = {1: 2}
+mini_batch_size     = 10
 
-num_workers         = {128: 8, 256: 4, 512: 2}
+num_workers         = {128: 12, 256: 12, 512: 12}
 max_workers         = 16
 n_fc                = 8
 dim_latent          = 512
@@ -36,16 +38,16 @@ dim_input           = 4
 step                = 1
 max_step            = 7
 
-# Used to contineu training from checkpoint
+# Used to continue training from checkpoint
 iteration         = 0
 startpoint        = 0
 used_sample       = 0
 alpha             = 0
 
 # number of samples to show before dowbling resolution
-n_sample          = 100
+n_sample          = 1
 # number of samples train model in total
-n_sample_total    = 202_599
+n_sample_total    = 100
 n_show_loss       = 1
 DGR               = 1
 # How to start training?
@@ -95,8 +97,8 @@ def gain_sample(dataset, batch_size, image_size=4):
             transforms.CenterCrop(image_size),      # Crop to get square area
             transforms.RandomHorizontalFlip(),      # Increase number of samples
             transforms.ToTensor(),
-            # transforms.Normalize((0.5, 0.5, 0.5),
-            #                      (0.5, 0.5, 0.5))
+            transforms.Normalize((0.5, 0.5, 0.5),
+                                 (0.5, 0.5, 0.5))
             ])
 
     dataset.transform = transform
@@ -146,6 +148,7 @@ reset_LR(d_optim, learning_rate.get(resolution, 0.001))
 progress_bar = tqdm(total=n_sample_total, initial=used_sample)
 # Train
 while used_sample < n_sample_total:
+    print("------------------------------------------------------");
     iteration += 1
     alpha = min(1, alpha + batch_size.get(resolution, mini_batch_size) / (n_sample))
 
@@ -215,6 +218,8 @@ while used_sample < n_sample_total:
         noise_1.append(torch.randn((batch_size.get(resolution, mini_batch_size), 1, size, size), device=device))
         noise_2.append(torch.randn((batch_size.get(resolution, mini_batch_size), 1, size, size), device=device))
 
+    print(noise_1[-1].size())
+    print(noise_2[-1].size())
     # Generate fake image & backward
     if n_gpu > 1:
         fake_image = nn.parallel.data_parallel(generator, (latent_w1, step, alpha, noise_1), range(n_gpu))
@@ -254,10 +259,8 @@ while used_sample < n_sample_total:
         fake_image = nn.parallel.data_parallel(generator, (latent_w2, step, alpha, noise_2), range(n_gpu))
         fake_predict = nn.parallel.data_parallel(discriminator, (fake_image, step, alpha), range(n_gpu))
     else:
-        fake_image = generator(latent_w2,
-                               step=step,
-                               alpha=alpha,
-                               noise=noise_2)
+        print(f"2: {latent_w2[0].size()}")
+        fake_image = generator(latent_w2, step=step, alpha=alpha, noise=noise_2)
 
         fake_predict = discriminator(fake_image,
                                      step,
@@ -268,7 +271,7 @@ while used_sample < n_sample_total:
 
     if iteration % n_show_loss == 0:
         g_losses.append(fake_predict.item())
-        imsave(fake_image.data.cpu(), iteration)
+        # imsave(fake_image.data.cpu(), iteration)
 
     # Avoid possible memory leak
     del fake_predict, fake_image, latent_w2
