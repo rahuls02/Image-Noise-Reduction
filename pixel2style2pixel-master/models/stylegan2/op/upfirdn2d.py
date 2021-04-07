@@ -17,13 +17,13 @@ upfirdn2d_op = load(
 class UpFirDn2dBackward(Function):
     @staticmethod
     def forward(
-            ctx, grad_output, kernel, grad_kernel, up, down, pad, g_pad, in_size, out_size
+            ctx, output, kernel, grad_kernel, up, down, pad, g_pad, in_size, out_size
     ):
         up_x, up_y = up
         down_x, down_y = down
         g_pad_x0, g_pad_x1, g_pad_y0, g_pad_y1 = g_pad
 
-        grad_output = grad_output.reshape(-1, out_size[0], out_size[1], 1)
+        grad_output = output.reshape(-1, out_size[0], out_size[1], 1)
 
         grad_input = upfirdn2d_op.upfirdn2d(
             grad_output,
@@ -84,16 +84,16 @@ class UpFirDn2dBackward(Function):
 
 class UpFirDn2d(Function):
     @staticmethod
-    def forward(ctx, input, kernel, up, down, pad):
+    def forward(ctx, inp, kernel, up, down, pad):
         up_x, up_y = up
         down_x, down_y = down
-        pad_x0, pad_x1, pad_y0, pad_y1 = pad
+        pad_x0, pad_x1, pad_y0, pad_y1 = pad; del pad
 
         kernel_h, kernel_w = kernel.shape
-        batch, channel, in_h, in_w = input.shape
-        ctx.in_size = input.shape
+        _, channel, in_h, in_w = inp.shape
+        ctx.in_size = inp.shape
 
-        input = input.reshape(-1, in_h, in_w, 1)
+        input = inp.reshape(-1, in_h, in_w, 1); del inp
 
         ctx.save_for_backward(kernel, torch.flip(kernel, [0, 1]))
 

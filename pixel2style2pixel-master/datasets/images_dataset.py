@@ -1,24 +1,22 @@
 from torch.utils.data import Dataset
+import numpy as np
 from PIL import Image
 from utils import data_utils
 
+# credit to https://gist.github.com/glenrobertson/2288152#gistcomment-3461365
+def get_white_noise_image(w,h):
+    pil_map = Image.fromarray(np.random.randint(0,255,(w,h,3),dtype=np.dtype('uint8')))
+    return pil_map.convert('RGB')
 
 class ImagesDataset(Dataset):
 
 	def __init__(self, source_root, target_root, opts, target_transform=None, source_transform=None):
-		self.source_paths = sorted(data_utils.make_dataset(source_root))
-		self.target_paths = sorted(data_utils.make_dataset(target_root))
-		self.source_transform = source_transform
-		self.target_transform = target_transform
+		self.source_paths = sorted(data_utils.make_dataset(source_root)); self.noise_strength = opts.noise_strength
+		self.transform = source_transform
 		self.opts = opts
 
 	def __len__(self):
 		return len(self.source_paths)
-
-	# credit to https://gist.github.com/glenrobertson/2288152#gistcomment-3461365
-	def get_white_noise_image(w,h):
-		pil_map = Image.fromarray(np.random.randint(0,255,(w,h,3),dtype=np.dtype('uint8')))
-		return pil_map.convert('RGB')
 
 	def __getitem__(self, index):
 		path = self.source_paths[index]
@@ -31,7 +29,7 @@ class ImagesDataset(Dataset):
 			clean_im = self.transform(clean_im)
 			noised_im = self.transform(noised_im)
         
-		return clean_im, noised_im
+		return noised_im, clean_im
 
 		# from_path = self.source_paths[index]
 		# from_im = Image.open(from_path)

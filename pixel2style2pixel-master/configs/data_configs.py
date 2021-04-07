@@ -38,4 +38,11 @@ DATASETS = {
 		'test_source_root': dataset_paths['celeba_test'],
 		'test_target_root': dataset_paths['celeba_test'],
 	},
+	'special_dataset': {
+		'transforms': transforms_config.SuperResTransforms,
+		'train_source_root': '../images/train/',
+		'train_target_root': '../images/train/',
+		'test_source_root': '../images/train/',
+		'test_target_root': '../images/train/',
+	},
 }

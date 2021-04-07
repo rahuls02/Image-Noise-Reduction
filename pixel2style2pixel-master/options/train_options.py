@@ -33,11 +33,13 @@ class TrainOptions:
 		self.parser.add_argument('--w_norm_lambda', default=0, type=float, help='W-norm loss multiplier factor')
 		self.parser.add_argument('--lpips_lambda_crop', default=0, type=float, help='LPIPS loss multiplier factor for inner image region')
 		self.parser.add_argument('--l2_lambda_crop', default=0, type=float, help='L2 loss multiplier factor for inner image region')
+		self.parser.add_argument('--noise_strength', default=0.5, type=float, help='The level of noise to add to the image')
 
 		self.parser.add_argument('--stylegan_weights', default=model_paths['stylegan_ffhq'], type=str, help='Path to StyleGAN model weights')
 		self.parser.add_argument('--checkpoint_path', default=None, type=str, help='Path to pSp model checkpoint')
+		self.parser.add_argument('--device', default='cuda:0', type=str, help='The cuda device to train with')
 
-		self.parser.add_argument('--max_steps', default=500000, type=int, help='Maximum number of training steps')
+		self.parser.add_argument('--max_steps', default=500_000, type=int, help='Maximum number of training steps')
 		self.parser.add_argument('--image_interval', default=100, type=int, help='Interval for logging train images during training')
 		self.parser.add_argument('--board_interval', default=50, type=int, help='Interval for logging metrics to tensorboard')
 		self.parser.add_argument('--val_interval', default=1000, type=int, help='Validation interval')

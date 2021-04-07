@@ -1,11 +1,11 @@
 dataset_paths = {
-	'celeba_train': '',
-	'celeba_test': 'C:\\Users\\JsrSw\\Documents\\CS 378\\pixel2style2pixel-master\\vimeo_super_resolution_test',
-	'celeba_train_sketch': '',
-	'celeba_test_sketch': '',
-	'celeba_train_segmentation': '',
-	'celeba_test_segmentation': '',
-	'ffhq': '',
+	'celeba_train': '../datasets/ffhq',
+	'celeba_test': '../datasets/ffhq',
+	'celeba_train_sketch': '../datasets/celeba/img_align_celeba',
+	'celeba_test_sketch': '../datasets/celeba/img_align_celeba',
+	'celeba_train_segmentation': '../datasets/celeba/img_align_celeba',
+	'celeba_test_segmentation': '../datasets/celeba/img_align_celeba',
+	'ffhq': '../datasets/ffhq'
 }
 
 model_paths = {

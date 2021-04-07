@@ -1,11 +1,12 @@
-import os
-import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib
+import os
 
 matplotlib.use('Agg')
 
 import torch
 from torch import nn
+print("hi")
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
@@ -23,13 +24,10 @@ class Coach:
 	def __init__(self, opts):
 		self.opts = opts
 
-		self.global_step = 0
-
-		self.device = 'cpu'  # TODO: Allow multiple GPU? currently using CUDA_VISIBLE_DEVICES
-		self.opts.device = self.device
+		self.global_step = 0; self.device = self.opts.device
 
 		# Initialize network
-		self.net = pSp(self.opts).to(self.device)
+		self.net = pSp(self.opts).to(self.device);
 
 		# Initialize loss
 		if self.opts.lpips_lambda > 0:
@@ -64,14 +62,14 @@ class Coach:
 		# Initialize checkpoint dir
 		self.checkpoint_dir = os.path.join(opts.exp_dir, 'checkpoints')
 		os.makedirs(self.checkpoint_dir, exist_ok=True)
-		self.best_val_loss = None
+		self.best_val_loss = None;
 		if self.opts.save_interval is None:
 			self.opts.save_interval = self.opts.max_steps
 
 	def train(self):
-		self.net.train()
+		self.net.train();
 		while self.global_step < self.opts.max_steps:
-			for batch_idx, batch in enumerate(self.train_dataloader):
+			for _, batch in enumerate(self.train_dataloader):
 				self.optimizer.zero_grad()
 				x, y = batch
 				x, y = x.to(self.device).float(), y.to(self.device).float()
@@ -89,7 +87,7 @@ class Coach:
 					self.log_metrics(loss_dict, prefix='train')
 
 				# Validation related
-				val_loss_dict = None
+				val_loss_dict = None;
 				if self.global_step % self.opts.val_interval == 0 or self.global_step == self.opts.max_steps:
 					val_loss_dict = self.validate()
 					if val_loss_dict and (self.best_val_loss is None or val_loss_dict['loss'] < self.best_val_loss):
@@ -106,7 +104,7 @@ class Coach:
 					print('OMG, finished training!')
 					break
 
-				self.global_step += 1
+				self.global_step += 1; del batch, x, y, y_hat, latent
 
 	def validate(self):
 		self.net.eval()
@@ -139,7 +137,7 @@ class Coach:
 
 	def checkpoint_me(self, loss_dict, is_best):
 		save_name = 'best_model.pt' if is_best else 'iteration_{}.pt'.format(self.global_step)
-		save_dict = self.__get_save_dict()
+		save_dict = self.__get_save_dict(); print(f"Saved model to {save_name}")
 		checkpoint_path = os.path.join(self.checkpoint_dir, save_name)
 		torch.save(save_dict, checkpoint_path)
 		with open(os.path.join(self.checkpoint_dir, 'timestamp.txt'), 'a') as f:
@@ -221,7 +219,7 @@ class Coach:
 		for key, value in metrics_dict.items():
 			print('\t{} = '.format(key), value)
 
-	def parse_and_log_images(self, id_logs, x, y, y_hat, title, subscript=None, display_count=2):
+	def parse_and_log_images(self, id_logs, x, y, y_hat, title, subscript=None, display_count=1):
 		im_data = []
 		for i in range(display_count):
 			cur_im_data = {

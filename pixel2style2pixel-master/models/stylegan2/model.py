@@ -233,21 +233,20 @@ class ModulatedConv2d(nn.Module):
         batch, in_channel, height, width = input.shape
 
         style = self.modulation(style).view(batch, 1, in_channel, 1, 1)
-        weight = self.scale * self.weight * style
+        weight = self.scale * self.weight * style; del style
 
         if self.demodulate:
             demod = torch.rsqrt(weight.pow(2).sum([2, 3, 4]) + 1e-8)
-            weight = weight * demod.view(batch, self.out_channel, 1, 1, 1)
+            weight = weight * demod.view(batch, self.out_channel, 1, 1, 1); del demod
 
         weight = weight.view(
             batch * self.out_channel, in_channel, self.kernel_size, self.kernel_size
         )
-
         if self.upsample:
             input = input.view(1, batch * in_channel, height, width)
             weight = weight.view(
                 batch, self.out_channel, in_channel, self.kernel_size, self.kernel_size
-            )
+            );
             weight = weight.transpose(1, 2).reshape(
                 batch * in_channel, self.out_channel, self.kernel_size, self.kernel_size
             )
@@ -269,7 +268,7 @@ class ModulatedConv2d(nn.Module):
             out = F.conv2d(input, weight, padding=self.padding, groups=batch)
             _, _, height, width = out.shape
             out = out.view(batch, self.out_channel, height, width)
-
+        del input 
         return out
 
 
@@ -329,10 +328,10 @@ class StyledConv(nn.Module):
         self.activate = FusedLeakyReLU(out_channel)
 
     def forward(self, input, style, noise=None):
-        out = self.conv(input, style)
-        out = self.noise(out, noise=noise)
+        out = self.conv(input, style); del input
+        lout = self.noise(out, noise=noise); del out
         # out = out + self.bias
-        out = self.activate(out)
+        out = self.activate(lout)
 
         return out
 
@@ -348,13 +347,13 @@ class ToRGB(nn.Module):
         self.bias = nn.Parameter(torch.zeros(1, 3, 1, 1))
 
     def forward(self, input, style, skip=None):
-        out = self.conv(input, style)
+        out = self.conv(input, style); del input
         out = out + self.bias
 
         if skip is not None:
             skip = self.upsample(skip)
 
-            out = out + skip
+            out = out + skip; del skip
 
         return out
 
@@ -384,7 +383,7 @@ class Generator(nn.Module):
                 )
             )
 
-        self.style = nn.Sequential(*layers)
+        self.style = nn.Sequential(*layers); del layers
 
         self.channels = {
             4: 512,
@@ -479,6 +478,7 @@ class Generator(nn.Module):
             noise=None,
             randomize_noise=True,
     ):
+        print(f"Total size used before: {torch.cuda.memory_allocated()/1024**2} Mib")
         if not input_is_latent:
             styles = [self.style(s) for s in styles]
 
@@ -515,14 +515,15 @@ class Generator(nn.Module):
             latent = styles[0].unsqueeze(1).repeat(1, inject_index, 1)
             latent2 = styles[1].unsqueeze(1).repeat(1, self.n_latent - inject_index, 1)
 
-            latent = torch.cat([latent, latent2], 1)
-
+            latent = torch.cat([latent, latent2], 1); del latent2
+        del styles
         out = self.input(latent)
         out = self.conv1(out, latent[:, 0], noise=noise[0])
 
         skip = self.to_rgb1(out, latent[:, 1])
 
         i = 1
+        torch.cuda.empty_cache()
         for conv1, conv2, noise1, noise2, to_rgb in zip(
                 self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):

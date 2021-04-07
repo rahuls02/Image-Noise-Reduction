@@ -41,7 +41,7 @@ n_fc              = 8
 dim_latent        = 512
 dim_input         = 4
 # number of samples to show before dowbling resolution
-n_sample          = 10
+n_sample          = 50650
 # number of samples train model in total
 n_sample_total    = 202_599
 DGR               = 1
@@ -137,17 +137,18 @@ def train(generator, discriminator, g_optim, d_optim, dataset, step, iteration=0
             reset_LR(d_optim, learning_rate.get(resolution, 0.001))
         try:
             # Try to read next image
-            real_image, noised_im = next(data_loader)
+            real_image, noise_image = next(data_loader)
 
         except (OSError, StopIteration):
             # Dataset exhausted, train from the first image
             data_loader = iter(origin_loader)
-            real_image, _ = next(data_loader)
+            real_image, noise_image = next(data_loader)
         # Count used sample
         used_sample += real_image.shape[0]
         progress_bar.update(real_image.shape[0])
         # Send image to GPU
         real_image = real_image.to(device)
+        noise_image = noise_image.to(device)
         # D Module ---
         # Train discriminator first
         discriminator.zero_grad()
@@ -167,7 +168,16 @@ def train(generator, discriminator, g_optim, d_optim, dataset, step, iteration=0
         grad_penalty_real = (grad_real.view(grad_real.size(0), -1).norm(2, dim=1) ** 2).mean()
         grad_penalty_real = 10 / 2 * grad_penalty_real
         grad_penalty_real.backward()
-        # Generate latent code
+
+        # Train on the noisy image
+        if n_gpu > 1:
+            fake_predict_1 = nn.parallel.data_parallel(discriminator, (noise_image, step, alpha), range(n_gpu))
+        else:
+            fake_predict_1 = discriminator(noise_image, step, alpha)
+        fake_predict_1 = nn.functional.softplus(fake_predict_1).mean()
+        fake_predict_1.backward()
+
+        # Generate latent code - Using our mapping layer
         latent_w1 = [torch.randn((batch_size.get(resolution, mini_batch_size), dim_latent), device=device)]
         latent_w2 = [torch.randn((batch_size.get(resolution, mini_batch_size), dim_latent), device=device)]
 
@@ -185,6 +195,7 @@ def train(generator, discriminator, g_optim, d_optim, dataset, step, iteration=0
             fake_image = generator(latent_w1, step, alpha, noise_1)
             fake_predict = discriminator(fake_image, step, alpha)
 
+        # Calculate Discriminator loss
         fake_predict = nn.functional.softplus(fake_predict).mean()
         fake_predict.backward()
         if iteration % n_show_loss == 0:
@@ -205,6 +216,8 @@ def train(generator, discriminator, g_optim, d_optim, dataset, step, iteration=0
         else: 
             fake_image = generator(latent_w2, step, alpha, noise_2)
             fake_predict = discriminator(fake_image, step, alpha)
+
+        # Calculate Generator Loss
         fake_predict = nn.functional.softplus(-fake_predict).mean()
         fake_predict.backward()
         g_optim.step()

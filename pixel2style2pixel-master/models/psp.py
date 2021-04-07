@@ -64,18 +64,18 @@ class pSp(nn.Module):
 				self.__load_latent_avg(ckpt, repeat=18)
 
 	def forward(self, x, resize=True, latent_mask=None, input_code=False, randomize_noise=True,
-	            inject_latent=None, return_latents=False, alpha=None):
+	            inject_latent=None, return_latents=False, alpha=None): 
+                
 		if input_code:
-			codes = x
+			codes = x; del x; print(f"Total size used before: {torch.cuda.memory_allocated()/1024**2} Mib") 
 		else:
-			codes = self.encoder(x)
+			print(f"Total size used before: {torch.cuda.memory_allocated()/1024**2} Mib"); codes = self.encoder(x); del x; 
 			# normalize with respect to the center of an average face
 			if self.opts.start_from_latent_avg:
 				if self.opts.learn_in_w:
-					codes = codes + self.latent_avg.repeat(codes.shape[0], 1)
+					codes += self.latent_avg.repeat(codes.shape[0], 1)
 				else:
-					codes = codes + self.latent_avg.repeat(codes.shape[0], 1, 1)
-
+					codes += self.latent_avg.repeat(codes.shape[0], 1, 1)
 
 		if latent_mask is not None:
 			for i in latent_mask:
@@ -87,7 +87,7 @@ class pSp(nn.Module):
 				else:
 					codes[:, i] = 0
 
-		input_is_latent = not input_code
+		input_is_latent = not input_code;
 		images, result_latent = self.decoder([codes],
 		                                     input_is_latent=input_is_latent,
 		                                     randomize_noise=randomize_noise,

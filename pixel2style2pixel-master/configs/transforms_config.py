@@ -125,18 +125,12 @@ class SuperResTransforms(TransformsConfig):
 		super(SuperResTransforms, self).__init__(opts)
 
 	def get_transforms(self):
-		if self.opts.resize_factors is None:
-			self.opts.resize_factors = '1,2,4,8,16,32'
-		factors = [int(f) for f in self.opts.resize_factors.split(",")]
-		print("Performing down-sampling with factors: {}".format(factors))
 		transforms_dict = {
 			'transform_gt_train': transforms.Compose([
 				transforms.Resize((256, 256)),
 				transforms.ToTensor(),
 				transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])]),
 			'transform_source': transforms.Compose([
-				transforms.Resize((256, 256)),
-				augmentations.BilinearResize(factors=factors),
 				transforms.Resize((256, 256)),
 				transforms.ToTensor(),
 				transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])]),
@@ -145,8 +139,6 @@ class SuperResTransforms(TransformsConfig):
 				transforms.ToTensor(),
 				transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])]),
 			'transform_inference': transforms.Compose([
-				transforms.Resize((256, 256)),
-				augmentations.BilinearResize(factors=factors),
 				transforms.Resize((256, 256)),
 				transforms.ToTensor(),
 				transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])
