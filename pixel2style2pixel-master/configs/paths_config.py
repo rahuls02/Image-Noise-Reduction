@@ -1,6 +1,6 @@
 dataset_paths = {
-	'celeba_train': 'datasets/ffhq',
-	'celeba_test': 'datasets/ffhq',
+	'celeba_train': 'datasets/celeba',
+	'celeba_test': 'datasets/celeba',
 	'celeba_train_sketch': 'datasets/celeba/img_align_celeba',
 	'celeba_test_sketch': 'datasets/celeba/img_align_celeba',
 	'celeba_train_segmentation': 'datasets/celeba/img_align_celeba',
