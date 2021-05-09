@@ -73,10 +73,10 @@ class Coach:
 				self.optimizer.zero_grad()
 				x, y = batch
 				x, y = x.to(self.device).float(), y.to(self.device).float()
-				y_hat, latent = self.net.forward(x, return_latents=True)
+				y_hat, latent = nn.parallel.data_parallel(self.net, (x), range(2))
 				loss, loss_dict, id_logs = self.calc_loss(x, y, y_hat, latent)
 				loss.backward()
-				self.optimizer.step()
+				self.optimizer.step(); print(self.global_step)
 
 				# Logging related
 				if self.global_step % self.opts.image_interval == 0 or (
@@ -89,7 +89,7 @@ class Coach:
 				# Validation related
 				val_loss_dict = None;
 				if self.global_step % self.opts.val_interval == 0 or self.global_step == self.opts.max_steps:
-					val_loss_dict = self.validate()
+					val_loss_dict = self.validate(); print("Logging")
 					if val_loss_dict and (self.best_val_loss is None or val_loss_dict['loss'] < self.best_val_loss):
 						self.best_val_loss = val_loss_dict['loss']
 						self.checkpoint_me(val_loss_dict, is_best=True)
@@ -114,15 +114,15 @@ class Coach:
 
 			with torch.no_grad():
 				x, y = x.to(self.device).float(), y.to(self.device).float()
-				y_hat, latent = self.net.forward(x, return_latents=True)
+				y_hat, latent = nn.parallel.data_parallel(self.net, (x), range(2))
 				loss, cur_loss_dict, id_logs = self.calc_loss(x, y, y_hat, latent)
 			agg_loss_dict.append(cur_loss_dict)
 
 			# Logging related
-			self.parse_and_log_images(id_logs, x, y, y_hat,
-									  title='images/test/faces',
-									  subscript='{:04d}'.format(batch_idx))
-
+			self.parse_and_log_images(id_logs, x, y, y_hat, title='images/test/faces', subscript='{:04d}'.format(batch_idx))
+			
+			if batch_idx >= 10:
+				break
 			# For first step just do sanity test on small amount of data
 			if self.global_step == 0 and batch_idx >= 4:
 				self.net.train()
@@ -136,7 +136,7 @@ class Coach:
 		return loss_dict
 
 	def checkpoint_me(self, loss_dict, is_best):
-		save_name = 'best_model.pt' if is_best else 'iteration_{}.pt'.format(self.global_step)
+		save_name = 'best_model.pt' if is_best else 'iteration_current.pt'
 		save_dict = self.__get_save_dict(); print(f"Saved model to {save_name}")
 		checkpoint_path = os.path.join(self.checkpoint_dir, save_name)
 		torch.save(save_dict, checkpoint_path)
