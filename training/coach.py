@@ -1,24 +1,23 @@
+from training.ranger import Ranger
+from models.psp import pSp
+from criteria.lpips.lpips import LPIPS
+from datasets.images_dataset import ImagesDataset
+from configs import data_configs
+from criteria import id_loss, w_norm
+from utils import common, train_utils
+import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader
+from torch import nn
+import torch
 import matplotlib.pyplot as plt
 import matplotlib
 import os
 
 matplotlib.use("Agg")
 
-import torch
-from torch import nn
 
 print("hi")
-from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
-import torch.nn.functional as F
-
-from utils import common, train_utils
-from criteria import id_loss, w_norm
-from configs import data_configs
-from datasets.images_dataset import ImagesDataset
-from criteria.lpips.lpips import LPIPS
-from models.psp import pSp
-from training.ranger import Ranger
 
 
 class Coach:

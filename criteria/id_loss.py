@@ -16,7 +16,8 @@ class IDLoss(nn.Module):
         self.facenet.eval()
 
     def extract_feats(self, vector_one):
-        vector_one = vector_one[:, :, 35:223, 32:220]  # Crop interesting region
+        # Crop interesting region
+        vector_one = vector_one[:, :, 35:223, 32:220]
         vector_one = self.face_pool(vector_one)
         x_feats = self.facenet(vector_one)
         return x_feats
@@ -24,7 +25,8 @@ class IDLoss(nn.Module):
     def forward(self, y_hat, y_one, x_one):
         n_samples = x_one.shape[0]
         x_feats = self.extract_feats(x_one)
-        y_feats = self.extract_feats(y_one)  # Otherwise use the feature from there
+        # Otherwise use the feature from there
+        y_feats = self.extract_feats(y_one)
         y_hat_feats = self.extract_feats(y_hat)
         y_feats = y_feats.detach()
         loss = 0
@@ -40,7 +42,9 @@ class IDLoss(nn.Module):
                 }
             )
             loss += 1 - y_hat_feats[i].dot(y_feats[i])
-            id_diff = float(y_hat_feats[i].dot(y_feats[i])) - float(y_feats[i].dot(x_feats[i]))
+            id_diff = float(y_hat_feats[i].dot(y_feats[i])) - float(
+                y_feats[i].dot(x_feats[i])
+            )
             sim_improvement += id_diff
             count += 1
 

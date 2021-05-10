@@ -1,9 +1,12 @@
+"""
+Module that contains the TestOptions class
+"""
 from argparse import ArgumentParser
 
 
 class TestOptions:
     """
-    Training Options configuration for command line options
+    Test Options configuration for command line options
     """
 
     def __init__(self):

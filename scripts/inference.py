@@ -1,6 +1,11 @@
 """
 Evaluate the authenticity of your model using this module
 """
+from models.psp import pSp
+from options.test_options import TestOptions
+from utils.common import tensor2im, log_input_image
+from datasets.inference_dataset import InferenceDataset
+from configs import data_configs
 import os
 from argparse import Namespace
 
@@ -14,12 +19,6 @@ import sys
 
 sys.path.append(".")
 sys.path.append("..")
-
-from configs import data_configs
-from datasets.inference_dataset import InferenceDataset
-from utils.common import tensor2im, log_input_image
-from options.test_options import TestOptions
-from models.psp import pSp
 
 
 def run():

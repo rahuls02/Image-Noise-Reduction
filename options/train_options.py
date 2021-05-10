@@ -1,3 +1,6 @@
+"""
+Module that contains the TrainOptions class
+"""
 from argparse import ArgumentParser
 from configs.paths_config import model_paths
 
