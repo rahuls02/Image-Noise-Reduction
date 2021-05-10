@@ -5,10 +5,11 @@ from torch.autograd import Function
 from torch.utils.cpp_extension import load
 import upfirdn2d as upfirdn2d_op
 
+
 class UpFirDn2dBackward(Function):
     @staticmethod
     def forward(
-            ctx, output, kernel, grad_kernel, up, down, pad, g_pad, in_size, out_size
+        ctx, output, kernel, grad_kernel, up, down, pad, g_pad, in_size, out_size
     ):
         up_x, up_y = up
         down_x, down_y = down
@@ -49,7 +50,7 @@ class UpFirDn2dBackward(Function):
 
     @staticmethod
     def backward(ctx, gradgrad_input):
-        kernel, = ctx.saved_tensors
+        (kernel,) = ctx.saved_tensors
 
         gradgrad_input = gradgrad_input.reshape(-1, ctx.in_size[2], ctx.in_size[3], 1)
 
@@ -78,13 +79,15 @@ class UpFirDn2d(Function):
     def forward(ctx, inp, kernel, up, down, pad):
         up_x, up_y = up
         down_x, down_y = down
-        pad_x0, pad_x1, pad_y0, pad_y1 = pad; del pad
+        pad_x0, pad_x1, pad_y0, pad_y1 = pad
+        del pad
 
         kernel_h, kernel_w = kernel.shape
         _, channel, in_h, in_w = inp.shape
         ctx.in_size = inp.shape
 
-        input = inp.reshape(-1, in_h, in_w, 1); del inp
+        input = inp.reshape(-1, in_h, in_w, 1)
+        del inp
 
         ctx.save_for_backward(kernel, torch.flip(kernel, [0, 1]))
 
@@ -139,7 +142,7 @@ def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0)):
 
 
 def upfirdn2d_native(
-        input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
+    input, kernel, up_x, up_y, down_x, down_y, pad_x0, pad_x1, pad_y0, pad_y1
 ):
     _, in_h, in_w, minor = input.shape
     kernel_h, kernel_w = kernel.shape
@@ -152,11 +155,11 @@ def upfirdn2d_native(
         out, [0, 0, max(pad_x0, 0), max(pad_x1, 0), max(pad_y0, 0), max(pad_y1, 0)]
     )
     out = out[
-          :,
-          max(-pad_y0, 0): out.shape[1] - max(-pad_y1, 0),
-          max(-pad_x0, 0): out.shape[2] - max(-pad_x1, 0),
-          :,
-          ]
+        :,
+        max(-pad_y0, 0) : out.shape[1] - max(-pad_y1, 0),
+        max(-pad_x0, 0) : out.shape[2] - max(-pad_x1, 0),
+        :,
+    ]
 
     out = out.permute(0, 3, 1, 2)
     out = out.reshape(

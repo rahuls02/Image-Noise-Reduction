@@ -1,15 +1,26 @@
+"""
+mtcnn implementation
+"""
 import numpy as np
 import torch
 from PIL import Image
 from models.mtcnn.mtcnn_pytorch.src.get_nets import PNet, RNet, ONet
-from models.mtcnn.mtcnn_pytorch.src.box_utils import nms, calibrate_box, get_image_boxes, convert_to_square
+from models.mtcnn.mtcnn_pytorch.src.box_utils import (
+    nms,
+    calibrate_box,
+    get_image_boxes,
+    convert_to_square,
+)
 from models.mtcnn.mtcnn_pytorch.src.first_stage import run_first_stage
-from models.mtcnn.mtcnn_pytorch.src.align_trans import get_reference_facial_points, warp_and_crop_face
+from models.mtcnn.mtcnn_pytorch.src.align_trans import (
+    get_reference_facial_points,
+    warp_and_crop_face,
+)
 
-device = 'cuda:0'
+device = "cuda:0"
 
 
-class MTCNN():
+class MTCNN:
     def __init__(self):
         print(device)
         self.pnet = PNet().to(device)
@@ -25,7 +36,9 @@ class MTCNN():
         if len(landmarks) == 0:
             return None, None
         facial5points = [[landmarks[0][j], landmarks[0][j + 5]] for j in range(5)]
-        warped_face, tfm = warp_and_crop_face(np.array(img), facial5points, self.refrence, crop_size=(112, 112))
+        warped_face, tfm = warp_and_crop_face(
+            np.array(img), facial5points, self.refrence, crop_size=(112, 112)
+        )
         return Image.fromarray(warped_face), tfm
 
     def align_multi(self, img, limit=None, min_face_size=30.0):
@@ -37,14 +50,20 @@ class MTCNN():
         tfms = []
         for landmark in landmarks:
             facial5points = [[landmark[j], landmark[j + 5]] for j in range(5)]
-            warped_face, tfm = warp_and_crop_face(np.array(img), facial5points, self.refrence, crop_size=(112, 112))
+            warped_face, tfm = warp_and_crop_face(
+                np.array(img), facial5points, self.refrence, crop_size=(112, 112)
+            )
             faces.append(Image.fromarray(warped_face))
             tfms.append(tfm)
         return boxes, faces, tfms
 
-    def detect_faces(self, image, min_face_size=20.0,
-                     thresholds=[0.15, 0.25, 0.35],
-                     nms_thresholds=[0.7, 0.7, 0.7]):
+    def detect_faces(
+        self,
+        image,
+        min_face_size=20.0,
+        thresholds=[0.15, 0.25, 0.35],
+        nms_thresholds=[0.7, 0.7, 0.7],
+    ):
         """
         Arguments:
             image: an instance of PIL.Image.
@@ -87,7 +106,9 @@ class MTCNN():
         with torch.no_grad():
             # run P-Net on different scales
             for s in scales:
-                boxes = run_first_stage(image, self.pnet, scale=s, threshold=thresholds[0])
+                boxes = run_first_stage(
+                    image, self.pnet, scale=s, threshold=thresholds[0]
+                )
                 bounding_boxes.append(boxes)
 
             # collect boxes (and offsets, and scores) from different scales
@@ -98,7 +119,9 @@ class MTCNN():
             bounding_boxes = bounding_boxes[keep]
 
             # use offsets predicted by pnet to transform bounding boxes
-            bounding_boxes = calibrate_box(bounding_boxes[:, 0:5], bounding_boxes[:, 5:])
+            bounding_boxes = calibrate_box(
+                bounding_boxes[:, 0:5], bounding_boxes[:, 5:]
+            )
             # shape [n_boxes, 5]
 
             bounding_boxes = convert_to_square(bounding_boxes)
@@ -145,11 +168,15 @@ class MTCNN():
             width = bounding_boxes[:, 2] - bounding_boxes[:, 0] + 1.0
             height = bounding_boxes[:, 3] - bounding_boxes[:, 1] + 1.0
             xmin, ymin = bounding_boxes[:, 0], bounding_boxes[:, 1]
-            landmarks[:, 0:5] = np.expand_dims(xmin, 1) + np.expand_dims(width, 1) * landmarks[:, 0:5]
-            landmarks[:, 5:10] = np.expand_dims(ymin, 1) + np.expand_dims(height, 1) * landmarks[:, 5:10]
+            landmarks[:, 0:5] = (
+                np.expand_dims(xmin, 1) + np.expand_dims(width, 1) * landmarks[:, 0:5]
+            )
+            landmarks[:, 5:10] = (
+                np.expand_dims(ymin, 1) + np.expand_dims(height, 1) * landmarks[:, 5:10]
+            )
 
             bounding_boxes = calibrate_box(bounding_boxes, offsets)
-            keep = nms(bounding_boxes, nms_thresholds[2], mode='min')
+            keep = nms(bounding_boxes, nms_thresholds[2], mode="min")
             bounding_boxes = bounding_boxes[keep]
             landmarks = landmarks[keep]
 
