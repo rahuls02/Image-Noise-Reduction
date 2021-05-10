@@ -11,11 +11,11 @@ class ToOneHot(object):
     def __init__(self, n_classes=None):
         self.n_classes = n_classes
 
-    def onehot_initialization(self, a):
+    def onehot_initialization(self, a_one):
         if self.n_classes is None:
-            self.n_classes = len(np.unique(a))
-        out = np.zeros(a.shape + (self.n_classes,), dtype=int)
-        out[self.__all_idx(a, axis=2)] = 1
+            self.n_classes = len(np.unique(a_one))
+        out = np.zeros(a_one.shape + (self.n_classes,), dtype=int)
+        out[self.__all_idx(a_one, axis=2)] = 1
         return out
 
     def __all_idx(self, idx, axis):
@@ -30,14 +30,15 @@ class ToOneHot(object):
 
 
 class BilinearResize(object):
-    def __init__(self, factors=[1, 2, 4, 8, 16, 32]):
+    def __init__(self, factors):
+        factors = [1, 2, 4, 8, 16, 32]
         self.factors = factors
 
     def __call__(self, image):
         factor = np.random.choice(self.factors, size=1)[0]
-        D = BicubicDownSample(factor=factor, cuda=False)
+        D_one = BicubicDownSample(factor=factor, cuda=False)
         img_tensor = transforms.ToTensor()(image).unsqueeze(0)
-        img_tensor_lr = D(img_tensor)[0].clamp(0, 1)
+        img_tensor_lr = D_one(img_tensor)[0].clamp(0, 1)
         img_low_res = transforms.ToPILImage()(img_tensor_lr)
         return img_low_res
 

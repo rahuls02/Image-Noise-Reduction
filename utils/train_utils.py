@@ -2,6 +2,7 @@
 Utilities used when the model is being trained
 """
 
+
 def aggregate_loss_dict(agg_loss_dict):
     """
     Calculates the aggregate loss based on the input agg_loss_dict

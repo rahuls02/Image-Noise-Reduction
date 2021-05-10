@@ -1,4 +1,4 @@
-dataset_paths = {
+DATASET_PATHS = {
     "celeba_train": "datasets/ffhq",
     "celeba_test": "datasets/ffhq",
     "celeba_train_sketch": "datasets/celeba/img_align_celeba",
@@ -8,7 +8,7 @@ dataset_paths = {
     "ffhq": "../datasets/ffhq",
 }
 
-model_paths = {
+MODEL_PATHS = {
     "stylegan_ffhq": "pretrained_models/stylegan2-ffhq-config-f.pt",
     "ir_se50": "pretrained_models/model_ir_se50.pth",
     "circular_face": "pretrained_models/CurricularFace_Backbone.pth",

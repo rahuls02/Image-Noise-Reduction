@@ -5,6 +5,7 @@ class TestOptions:
     """
     Training Options configuration for command line options
     """
+
     def __init__(self):
         self.parser = ArgumentParser()
         self.initialize()
