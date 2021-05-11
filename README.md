@@ -141,12 +141,12 @@ python3 scripts/inference.py \
 | <img width=300> | <img>
 
 ## Credits
-**Pixel2style2pixel implementation**
-https://github.com/eladrich/pixel2style2pixel/
-Copyright (c) 2020
-License (MIT) https://github.com/eladrich/pixel2style2pixel/blob/master/LICENSE
+**Pixel2style2pixel implementation:**   
+https://github.com/eladrich/pixel2style2pixel/   
+Copyright (c) 2020   
+License (MIT) https://github.com/eladrich/pixel2style2pixel/blob/master/LICENSE   
 
-**StyleGAN2 implementation:**  
+**StyleGAN2 implementation:**   
 https://github.com/rosinality/stylegan2-pytorch  
 Copyright (c) 2019 Kim Seonghyeon  
 License (MIT) https://github.com/rosinality/stylegan2-pytorch/blob/master/LICENSE  
