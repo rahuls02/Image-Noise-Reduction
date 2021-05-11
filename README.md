@@ -141,6 +141,11 @@ python3 scripts/inference.py \
 | <img width=300> | <img>
 
 ## Credits
+**Pixel2style2pixel implementation**
+https://github.com/eladrich/pixel2style2pixel/
+Copyright (c) 2020
+License (MIT) https://github.com/eladrich/pixel2style2pixel/blob/master/LICENSE
+
 **StyleGAN2 implementation:**  
 https://github.com/rosinality/stylegan2-pytorch  
 Copyright (c) 2019 Kim Seonghyeon  
@@ -156,25 +161,10 @@ https://github.com/HuangYG123/CurricularFace
 Copyright (c) 2020 HuangYG123  
 License (MIT) https://github.com/HuangYG123/CurricularFace/blob/master/LICENSE  
 
-**Ranger optimizer implementation:**  
-https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer   
-License (Apache License 2.0) https://github.com/lessw2020/Ranger-Deep-Learning-Optimizer/blob/master/LICENSE  
-
 **LPIPS implementation:**  
-https://github.com/S-aiueo32/lpips-pytorch  
+https://github.com/S-aiueo32/lpips-pytorch 
 Copyright (c) 2020, Sou Uchida  
 License (BSD 2-Clause) https://github.com/S-aiueo32/lpips-pytorch/blob/master/LICENSE  
 
-**Please Note**: The CUDA files under the [StyleGAN2 ops directory](https://github.com/eladrich/pixel2style2pixel/tree/master/models/stylegan2/op) are made available under the [Nvidia Source Code License-NC](https://nvlabs.github.io/stylegan2/license.html)
+**Please Note**: The CUDA files under the [StyleGAN2 ops directory](https://github.com/rahuls02/Image-Noise-Reduction/tree/master/models/stylegan2/op) are made available under the [Nvidia Source Code License-NC](https://nvlabs.github.io/stylegan2/license.html)
 
-## Citation
-If you use this code for your research, please cite our paper <a href="https://arxiv.org/abs/2008.00951">Encoding in Style: a StyleGAN Encoder for Image-to-Image Translation</a>:
-
-```
-@article{richardson2020encoding,
-  title={Encoding in Style: a StyleGAN Encoder for Image-to-Image Translation},
-  author={Richardson, Elad and Alaluf, Yuval and Patashnik, Or and Nitzan, Yotam and Azar, Yaniv and Shapiro, Stav and Cohen-Or, Daniel},
-  journal={arXiv preprint arXiv:2008.00951},
-  year={2020}
-}
-```
