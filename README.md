@@ -22,10 +22,10 @@ All dependencies for defining the environment are provided in `environment/psp_e
 ### Pretrained Models
 If you wish to use one of the pretrained models for training or inference, you may do so using the flag `--checkpoint_path`.
 
-| Noise Level trained on | Link                |
-|------------------------|---------------------|
-| 55% Noise              | [link](INSERT LINK) |
-| 70% Noise              | [link](INSERT LINK) |
+| Noise Level trained on | Link                                                                                       |
+|------------------------|--------------------------------------------------------------------------------------------|
+| 55% Noise              | [link](https://drive.google.com/file/d/1_Q08OoLwXRmrT05G4Mm0nDcdZ9JadnRT/view?usp=sharing) |
+| 70% Noise              | [link](https://drive.google.com/file/d/1siHKKGsW_mMllk5ociFWMSZiK2uLnSj8/view?usp=sharing) |
 
 
 In addition, we provide various auxiliary models needed for training your own pSp model from scratch as well as pretrained models needed for computing the ID metrics reported in the paper.
