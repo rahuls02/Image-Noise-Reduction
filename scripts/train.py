@@ -1,6 +1,8 @@
 """
 This file runs the main training/val loop
 """
+from training.coach import Coach
+from options.train_options import TrainOptions
 import os
 import json
 import sys
@@ -8,9 +10,6 @@ import pprint
 
 sys.path.append(".")
 sys.path.append("..")
-
-from options.train_options import TrainOptions
-from training.coach import Coach
 
 
 def main():

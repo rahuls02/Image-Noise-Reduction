@@ -1,3 +1,6 @@
+"""
+StyleGAN implementation used from https://github.com/rosinality/stylegan2-pytorch
+"""
 import math
 import random
 import torch

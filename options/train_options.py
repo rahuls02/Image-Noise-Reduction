@@ -1,3 +1,6 @@
+"""
+Module that contains the TrainOptions class
+"""
 from argparse import ArgumentParser
 from configs.paths_config import model_paths
 
@@ -6,6 +9,7 @@ class TrainOptions:
     """
     Training Options configuration for command line options
     """
+
     def __init__(self):
         self.parser = ArgumentParser()
         self.initialize()

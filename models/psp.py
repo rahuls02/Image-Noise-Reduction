@@ -1,14 +1,14 @@
 """
 This file defines the core research contribution
 """
+from configs.paths_config import model_paths
+from models.stylegan2.model import Generator
+from models.encoders import psp_encoders
+from torch import nn
+import torch
 import matplotlib
 
 matplotlib.use("Agg")
-import torch
-from torch import nn
-from models.encoders import psp_encoders
-from models.stylegan2.model import Generator
-from configs.paths_config import model_paths
 
 
 def get_keys(d, name):
